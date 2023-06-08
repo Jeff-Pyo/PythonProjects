@@ -28,9 +28,18 @@ def set_brightness(level):
     brightness_instance = wmi_interface.WmiMonitorBrightnessMethods()[0]   # 모니터 설정 변경을 위한 인스턴스 가져오기
     brightness_instance.WmiSetBrightness(level, 0)     # 밝기 레벨 설정
 
-devices = AudioUtilities.GetSpeakers()
-interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-volume = cast(interface, POINTER(IAudioEndpointVolume))
+def set_volume(level):
+    devices = AudioUtilities.GetSpeakers()
+    interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+    volume = cast(interface, POINTER(IAudioEndpointVolume))
+    volume.SetMasterVolumeLevel(level, None)
+    volume_range = volume.GetVolumeRange()
+    min_volume = volume_range[0]
+    max_volume = volume_range[1]
+    # print("유효한 볼륨 레벨 범위:", min_volume+65.25, "-", max_volume+65.25)
+    master_volume = volume.GetMasterVolumeLevel()
+    # print("현재 마스터 볼륨 레벨:", master_volume+65.25)
+
 
 while True:
     success,img = cap.read()
@@ -117,6 +126,18 @@ while True:
                 handlms.landmark[0].y
             )
 
+            # hand_fliped = dist(
+            #     handlms.landmark[12].x,
+            #     handlms.landmark[12].y,
+            #     handlms.landmark[0].x,
+            #     handlms.landmark[0].y
+            # ) < dist(
+            #     handlms.landmark[9].x,
+            #     handlms.landmark[9].y,
+            #     handlms.landmark[0].x,
+            #     handlms.landmark[0].y
+            # )
+
             virtual_mouse = ring_folded & pinky_folded & thumb_folded
             adjust_brightness = ring_folded and thumb_folded and middle_folded
             open_palm = (not thumb_folded) & (not index_folded) & (not middle_folded) & (not ring_folded) & (not pinky_folded)
@@ -133,7 +154,7 @@ while True:
                 ldist = ldist * 50
                 ldist = -60 - ldist
                 ldist = min(0,ldist)
-                volume.SetMasterVolumeLevel(ldist, None)
+                set_volume(ldist)
 
             elif virtual_mouse:
                 cv2.putText(

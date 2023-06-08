@@ -3,6 +3,7 @@ import time
 import numpy as np
 import hand_detector as hd
 import pyautogui
+from brm2 import GestureDetector
 
 wCam, hCam = 640, 480  # 카메라 화면의 가로와 세로 크기
 frameR = 100  # 손을 감지할 프레임의 크기
@@ -18,7 +19,7 @@ cap.set(4, hCam)  # 카메라 화면의 세로 크기 설정
 detector = hd.handDetector(detectionCon=0.7)  # 손 감지기 객체 생성
 wScr, hScr = pyautogui.size()  # 화면의 가로와 세로 크기 가져오기
 print(wScr, hScr)
-
+gesture_detector = GestureDetector()
 while True:
     success, img = cap.read()  # 카메라로부터 영상 프레임 가져오기
     img = detector.findHands(img)  # 손 감지하기
@@ -32,11 +33,12 @@ while True:
         fingers = detector.fingersUp()  # 손가락 상태 가져오기
         cv2.rectangle(img, (frameR, frameR), (wCam - frameR, hCam - frameR), (205, 250, 255), -1)  # 사각형 그리기
         img = cv2.addWeighted(img, 0.5, output, 1 - .5, 0, output)  # 영상 합성
-
+        gesture_detector.run()
+        
         # 검지 손가락만 펼쳐져 있는 경우: 이동 모드
-        if fingers[1] == 1 and fingers[2] == 0:
-            x3 = np.interp(x1, (frameR, wCam - frameR), (0, wScr))  # 좌표 변환
-            y3 = np.interp(y1, (frameR, hCam - frameR), (0, hScr))  # 좌표 변환
+        if fingers[1] == 1 and fingers[2] == 1:
+            x3 = np.interp((x1 + x2)/2, (frameR, wCam - frameR), (0, wScr))  # 좌표 변환
+            y3 = np.interp((y1 + y2)/2, (frameR, hCam - frameR), (0, hScr))  # 좌표 변환
 
             clocX = plocX + (x3 - plocX) / smoothening  # 값 부드럽게 처리
             clocY = plocY + (y3 - plocY) / smoothening  # 값 부드럽게 처리
@@ -45,14 +47,11 @@ while True:
             cv2.circle(img, (x1, y1), 6, (255, 28, 0), cv2.FILLED)  # 원 그리기
             plocX, plocY = clocX, clocY
 
-        # 검지와 중지 손가락 모두 펼쳐져 있는 경우: 클릭 모드
-        if fingers[1] == 1 and fingers[2] == 1: 
-            length, img, lineInfo = detector.findDistance(8, 12, img)  # 손가락 사이의 거리 찾기
-
-            if length < 40:  # 거리가 짧으면 클릭
+            length, img, lineInfo = detector.findDistance(8, 12, img)
+            if length < 25:  # 거리가 짧으면 클릭
                 cv2.circle(img, (lineInfo[4], lineInfo[5]), 6, (0, 255, 0), cv2.FILLED)  # 원 그리기
                 pyautogui.click()
-
+                
     if cv2.waitKey(1) & 0xFF == ord('q'):  # 'q' 키를 누르면 종료
         break
 

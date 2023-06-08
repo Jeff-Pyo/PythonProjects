@@ -81,6 +81,7 @@ while True:
                     print(length)
                     pyautogui.click()
             #coded by Junho Pyo
+            #helped by Donghyeon Lim
 
             elif adjust_brightness:
 
